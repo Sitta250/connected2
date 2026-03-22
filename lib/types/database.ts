@@ -288,7 +288,7 @@ export interface NewsArticle {
 // ─── Enriched / joined types ─────────────────────────────────────────────────
 
 export type CourseReviewWithProfile = CourseReview & {
-  profiles: Pick<Profile, "full_name" | "avatar_url" | "major" | "year">
+  profiles: Pick<Profile, "full_name" | "avatar_url" | "major" | "year_of_study">
 }
 
 export type CourseQuestionWithProfile = CourseQuestion & {
