@@ -1,3 +1,5 @@
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface PageShellProps {
@@ -18,6 +20,13 @@ export function PageShell({
 }: PageShellProps) {
   return (
     <div className={cn("px-4 pt-12 pb-4", className)}>
+      <Link
+        href="/home"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Home
+      </Link>
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">{title}</h1>

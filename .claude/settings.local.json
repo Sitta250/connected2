@@ -13,7 +13,26 @@
       "Bash(npx tsc:*)",
       "Bash(npm run:*)",
       "Bash(node -e \"require\\(''dotenv''\\).config\\({path:''/Users/sitta/Desktop/coding/vibing/cursor/connected/.env.local''}\\); console.log\\(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY\\)\")",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "WebFetch(domain:constructor.university)",
+      "Bash(curl -s \"https://constructor.university/student-life/registrar-services/study-program-handbooks\")",
+      "Bash(curl -s https://constructor.university/student-life/registrar-services/study-program-handbooks)",
+      "Bash(python3:*)",
+      "Bash(node -e \"require\\(''''./node_modules/cheerio/package.json''''\\)\")",
+      "Bash(for f:*)",
+      "Bash(do)",
+      "Bash(echo \"=== $f ===\")",
+      "Read(//Users/sitta/Desktop/coding/vibing/cursor/connected/**)",
+      "Bash(done)",
+      "WebFetch(domain:campusnet.constructor.university)",
+      "Bash(curl -s \"https://campusnet.constructor.university/\")",
+      "Bash(curl -s \"https://campusnet.constructor.university/scripts/mgrqispi.dll?APPNAME=CampusNet&PRGNAME=EXTERNALPAGES&ARGUMENTS=-N000000000000001,-N000344,-Awelcome\")",
+      "Bash(curl -s \"https://campusnet.constructor.university/scripts/mgrqispi.dll?APPNAME=CampusNet&PRGNAME=ACTION&ARGUMENTS=-ArFX1CMMiiz6-n7ntk5teauzGePTpKBG7pwxvMPD1Sfon0lejHF35UuLJk~9aclyy4jw7HZtkBSDCcLb37d5rzngMzrRGq4tc8hZVpqqA2sDOQ-GA6z7mirRjC6PXEzQprSt8ZkoiZn2NZA15PI3Wk8mkQkgWOITf1VbCUHP-nIjxWez0iLThNyiFkg__\")",
+      "Bash(curl -s \"https://campusnet.constructor.university/scripts/mgrqispi.dll?APPNAME=CampusNet&PRGNAME=ACTION&ARGUMENTS=-AJ5wX4fZMD6d~B7A8JaSr0osPlE1GZo8rn9nsPVGgTSVM8rLW4-AKV0rX1VTDrxfv1u4650bloWWFDvqDGcp7Ss~Sg1yt0RJpwBo5~edWfC8o2EpzeKFQbwRDS6FsoAx7Ufg9odeCIsoiJHG~5GBHQh~DJ3ouhEMNU~gyaqTlqi5uw3hus2aT07yLqw__\")",
+      "Bash(curl -s \"https://campusnet.constructor.university/scripts/mgrqispi.dll?APPNAME=CampusNet&PRGNAME=ACTION&ARGUMENTS=-Ac5-RKfZj7nGO~~4Vv6Ht63uYrD5t6Mmg6XOFzb1im9DHY06hgmFmbVmT-eEop9POD1Q9UxOiMmI7PEryM0mr8A9TcgPE7hmfkpN~ZOrVuuMsqT~YcKdFvYdA~DYYDqlACh4X3GXI~hphS04iDiEDP9K4J1oThr1yF7jmWdnCCV5e2J-tvcgKqtVsjDS-W3hI64O3Tro5AZx7lB0_\")",
+      "Bash(curl -s \"https://campusnet.constructor.university/scripts/mgrqispi.dll?APPNAME=CampusNet&PRGNAME=ACTION&ARGUMENTS=-AqXpI51f0tDTUbDZAJttQM2BbFbXEm7ADX4U2y~CD0Al75cmGh-Ql1A6qTVqIzVpbXq-Vx-U3EJS8GdB1dJwfoqcNcnnn6H7jQO9CP7EeE8clTz2wwt~Npu-NNX0TzjKfoY72tbP6bCzQx5lwmv55qnkYxO6WIG~-m8Vu8cjva-uVfdKSdUit20huNt2o7S6MNCfSdF53pzG~f40_\")",
+      "Bash(sed -n '350,600p' /tmp/science.html)",
+      "Bash(curl -s \"https://campusnet.constructor.university/scripts/mgrqispi.dll?APPNAME=CampusNet&PRGNAME=ACTION&ARGUMENTS=-AcPcHj-JfGVaGygrkOgw9e52wBAaJcUtnWxl~CZH5hg5sdEAzA05BG3EpVb9P9FoVozGMLBtSzREvXfU7SrHwobTVIeLMST5p4Dv2YUNF8tBajUGt2JZEPq63X2Q99fDIfOzzjycyBdmC4sDCqHoNSuNgRyCxoYtcDilpyn2LumPPEEML~5vxMbDkbdfu9QDdaTNXUkpee1pl2MY_\")"
     ]
   }
 }

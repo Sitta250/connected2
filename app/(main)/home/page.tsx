@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Bell, BookOpen, Users, ShoppingBag, CalendarDays } from "lucide-react"
+import { Bell, BookOpen, Users, ShoppingBag, CalendarDays, Sparkles } from "lucide-react"
 import { getInitials } from "@/lib/utils"
 
 const QUICK_LINKS = [
@@ -83,22 +83,19 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Activity feed placeholder */}
-      <section>
+      {/* Activity feed */}
+      <section className="pb-8">
         <h2 className="font-display text-base font-semibold mb-3">Recent activity</h2>
-        <div className="space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-card rounded-2xl p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#f3f3f3] shrink-0 animate-pulse" />
-              <div className="flex-1 space-y-1.5">
-                <div className="h-3 bg-[#f3f3f3] rounded-full w-3/4 animate-pulse" />
-                <div className="h-2.5 bg-[#f3f3f3] rounded-full w-1/2 animate-pulse" />
-              </div>
-            </div>
-          ))}
-          <p className="text-center text-xs text-muted-foreground pt-1">
-            Activity feed coming soon
-          </p>
+        <div className="flex flex-col items-center justify-center py-10 px-4 bg-card rounded-2xl gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-[#23389c]/10 flex items-center justify-center">
+            <Sparkles className="h-5 w-5 text-[#23389c]" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-foreground">No recent activity yet</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Join a club, browse courses, or post on the marketplace to get started.
+            </p>
+          </div>
         </div>
       </section>
     </div>

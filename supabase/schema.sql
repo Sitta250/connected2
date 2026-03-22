@@ -62,12 +62,12 @@ create policy "Profiles: own update"
   on profiles for update using (id = auth.uid()) with check (id = auth.uid());
 
 -- Users in the same university can read each other's profiles.
+-- Uses JWT metadata to avoid infinite recursion (university_id is stored
+-- in user_metadata at signup and never changes).
 create policy "Profiles: same-university read"
   on profiles for select
   using (
-    university_id = (
-      select university_id from profiles where id = auth.uid()
-    )
+    university_id = (auth.jwt() -> 'user_metadata' ->> 'university_id')::uuid
   );
 
 -- Auto-update updated_at on any change.
