@@ -4,7 +4,14 @@
       "mcp__stitch__list_projects",
       "mcp__stitch__list_screens",
       "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir=no --import-alias=\"@/*\" --yes)",
-      "Bash(npx shadcn@latest init --defaults -y)"
+      "Bash(npx shadcn@latest init --defaults -y)",
+      "Bash(npx shadcn@latest add badge card input label separator skeleton tabs textarea avatar dialog sheet dropdown-menu --yes)",
+      "Bash(npm install:*)",
+      "Bash(mkdir -p /Users/sitta/Desktop/coding/vibing/cursor/connected/app/\\\\\\(main\\\\\\)/courses/[id])",
+      "Bash(mkdir -p /Users/sitta/Desktop/coding/vibing/cursor/connected/app/\\\\\\(main\\\\\\)/clubs/[id])",
+      "Bash(mkdir -p \"/Users/sitta/Desktop/coding/vibing/cursor/connected/app/\\(main\\)/marketplace/[id]/chat\")",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)"
     ]
   }
 }
