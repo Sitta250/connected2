@@ -32,7 +32,15 @@
       "Bash(curl -s \"https://campusnet.constructor.university/scripts/mgrqispi.dll?APPNAME=CampusNet&PRGNAME=ACTION&ARGUMENTS=-Ac5-RKfZj7nGO~~4Vv6Ht63uYrD5t6Mmg6XOFzb1im9DHY06hgmFmbVmT-eEop9POD1Q9UxOiMmI7PEryM0mr8A9TcgPE7hmfkpN~ZOrVuuMsqT~YcKdFvYdA~DYYDqlACh4X3GXI~hphS04iDiEDP9K4J1oThr1yF7jmWdnCCV5e2J-tvcgKqtVsjDS-W3hI64O3Tro5AZx7lB0_\")",
       "Bash(curl -s \"https://campusnet.constructor.university/scripts/mgrqispi.dll?APPNAME=CampusNet&PRGNAME=ACTION&ARGUMENTS=-AqXpI51f0tDTUbDZAJttQM2BbFbXEm7ADX4U2y~CD0Al75cmGh-Ql1A6qTVqIzVpbXq-Vx-U3EJS8GdB1dJwfoqcNcnnn6H7jQO9CP7EeE8clTz2wwt~Npu-NNX0TzjKfoY72tbP6bCzQx5lwmv55qnkYxO6WIG~-m8Vu8cjva-uVfdKSdUit20huNt2o7S6MNCfSdF53pzG~f40_\")",
       "Bash(sed -n '350,600p' /tmp/science.html)",
-      "Bash(curl -s \"https://campusnet.constructor.university/scripts/mgrqispi.dll?APPNAME=CampusNet&PRGNAME=ACTION&ARGUMENTS=-AcPcHj-JfGVaGygrkOgw9e52wBAaJcUtnWxl~CZH5hg5sdEAzA05BG3EpVb9P9FoVozGMLBtSzREvXfU7SrHwobTVIeLMST5p4Dv2YUNF8tBajUGt2JZEPq63X2Q99fDIfOzzjycyBdmC4sDCqHoNSuNgRyCxoYtcDilpyn2LumPPEEML~5vxMbDkbdfu9QDdaTNXUkpee1pl2MY_\")"
+      "Bash(curl -s \"https://campusnet.constructor.university/scripts/mgrqispi.dll?APPNAME=CampusNet&PRGNAME=ACTION&ARGUMENTS=-AcPcHj-JfGVaGygrkOgw9e52wBAaJcUtnWxl~CZH5hg5sdEAzA05BG3EpVb9P9FoVozGMLBtSzREvXfU7SrHwobTVIeLMST5p4Dv2YUNF8tBajUGt2JZEPq63X2Q99fDIfOzzjycyBdmC4sDCqHoNSuNgRyCxoYtcDilpyn2LumPPEEML~5vxMbDkbdfu9QDdaTNXUkpee1pl2MY_\")",
+      "Bash(claude mcp:*)",
+      "Bash(npx @_davideast/stitch-mcp proxy)",
+      "Bash(npx @_davideast/stitch-mcp --version)",
+      "Bash(npx @_davideast/stitch-mcp proxy --help)",
+      "Bash(STITCH_API_KEY=AQ.Ab8RN6IZawerv_4I52IYfz3w3T1_-damQTx9T9Xu2eLfLDkXGA npx @_davideast/stitch-mcp proxy)",
+      "Bash(npx:*)",
+      "Bash(STITCH_API_KEY=\"AQ.Ab8RN6IZawerv_4I52IYfz3w3T1_-damQTx9T9Xu2eLfLDkXGA\" npx @_davideast/stitch-mcp doctor 2>&1)",
+      "Skill(stitch-design)"
     ]
   }
 }

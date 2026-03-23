@@ -54,10 +54,27 @@ interface SemesterLink {
   season: string
 }
 
+interface CrawlContext {
+  school:         string | null   // "School of Science", "School of CS & Engineering", etc.
+  curriculumType: string | null   // "Undergraduate", "Graduate", "Pre-Degree", "Exchange/Visiting"
+}
+
+interface QueueItem {
+  url:     string
+  context: CrawlContext
+}
+
+interface CoursePage {
+  url:     string
+  context: CrawlContext
+}
+
 interface ParsedOffering {
   moduleNumber:   string | null
   moduleName:     string
   moduleUrl:      string
+  school:         string | null
+  curriculumType: string | null
   offeringNumber: string | null
   offeringName:   string
   offeringUrl:    string
@@ -79,16 +96,28 @@ function normalizeText(raw: string): string {
     .trim()
 }
 
-/** "CH-101 General Cell Biology" → { moduleNumber: "CH-101", name: "General Cell Biology" } */
+/**
+ * Matches CampusNet course codes at the start of a title string.
+ * Handles patterns like:
+ *   JTBQ-028          PREFIX-NUM
+ *   JTLA-1206         PREFIX-NUM (variable digit count)
+ *   CA-MATH-800-S     PREFIX-DEPT-NUM-SUFFIX
+ *   CA-IEM-801-A      PREFIX-DEPT-NUM-SUFFIX
+ *   CA-IEM-802        PREFIX-DEPT-NUM
+ *   CA-999-16         PREFIX-NUM-NUM
+ */
+const COURSE_CODE_RE = /^([A-Z]{2,}(?:-[A-Z]+)*-\d+(?:-[A-Z0-9]+)?)\s+(.+)$/
+
+/** "CA-MATH-800 General Cell Biology" → { moduleNumber: "CA-MATH-800", name: "General Cell Biology" } */
 function parseModuleTitle(text: string): { moduleNumber: string | null; name: string } {
-  const m = text.match(/^([A-Z]{1,6}-\d{3}[A-Z]?)\s+(.+)$/)
+  const m = text.match(COURSE_CODE_RE)
   if (m) return { moduleNumber: m[1], name: m[2].trim() }
   return { moduleNumber: null, name: text.trim() }
 }
 
-/** "CH-101-A General Cell Biology" → { offeringNumber: "CH-101-A", name: "General Cell Biology" } */
+/** "CA-MATH-800-S General Cell Biology" → { offeringNumber: "CA-MATH-800-S", name: "General Cell Biology" } */
 function parseOfferingTitle(text: string): { offeringNumber: string | null; name: string } {
-  const m = text.match(/^([A-Z]{1,6}-\d{3}-[A-Z0-9]+)\s+(.+)$/)
+  const m = text.match(COURSE_CODE_RE)
   if (m) return { offeringNumber: m[1], name: m[2].trim() }
   return { offeringNumber: null, name: text.trim() }
 }
@@ -168,43 +197,72 @@ async function getSemesterLinks(): Promise<SemesterLink[]> {
   )
 }
 
-// ── Step 2 — BFS crawl per semester ───────────────────────────────────────────
+// ── Step 2 — BFS crawl per semester (context-aware) ──────────────────────────
+
+/** Extract school name from h2 breadcrumb, e.g. "School of Science" */
+function extractSchool(html: string): string | null {
+  const $ = cheerio.load(html)
+  // Breadcrumb links in h2; last "School of …" link is the current school
+  const links = $("h2 a").toArray().reverse()
+  for (const el of links) {
+    const text = normalizeText($(el).text().replace(/\s*>\s*$/, ""))
+    // Strip discipline subtitle in parentheses
+    const clean = text.replace(/\s*\(.*?\)\s*$/, "").trim()
+    if (/^school of/i.test(clean)) return clean
+  }
+  return null
+}
+
+/** Extract curriculum type from h2 breadcrumb text */
+function extractCurriculum(html: string): string | null {
+  const $ = cheerio.load(html)
+  const text = $("h2").text()
+  if (/undergraduate/i.test(text))    return "Undergraduate"
+  if (/graduate/i.test(text))         return "Graduate"
+  if (/pre-degree/i.test(text))       return "Pre-Degree"
+  if (/exchange|visiting/i.test(text)) return "Exchange/Visiting"
+  return null
+}
 
 /**
- * Returns all URLs of pages that contain course tables (.eventTable)
- * reachable from the given semester root URL.
+ * BFS crawl from the semester root. Returns course-table pages with their
+ * context (school, curriculum type) so the parser can store it on each course.
  */
 async function crawlSemester(
   semesterUrl: string,
-  semesterLabel: string,
   visited: Set<string>
-): Promise<string[]> {
-  const coursePages: string[] = []
-  const queue = [semesterUrl]
+): Promise<CoursePage[]> {
+  const coursePages: CoursePage[] = []
+  const queue: QueueItem[] = [{ url: semesterUrl, context: { school: null, curriculumType: null } }]
 
   while (queue.length > 0) {
-    const url = queue.shift()!
-    if (visited.has(url)) continue
-    visited.add(url)
+    const item = queue.shift()!
+    if (visited.has(item.url)) continue
+    visited.add(item.url)
 
     await sleep(RATE_MS)
-    const html = await fetchWithRetry(url)
+    const html = await fetchWithRetry(item.url)
     if (!html) continue
 
     const $ = cheerio.load(html)
 
-    // If this page has a course table, record it for parsing
+    // Enrich context from this page's breadcrumb
+    const school         = extractSchool(html)         ?? item.context.school
+    const curriculumType = extractCurriculum(html)     ?? item.context.curriculumType
+    const ctx: CrawlContext = { school, curriculumType }
+
+    // Course table page — record and stop recursing
     if ($(".eventTable").length > 0) {
-      coursePages.push(url)
-      continue // course-table pages don't have sub-nav
+      coursePages.push({ url: item.url, context: ctx })
+      continue
     }
 
-    // Otherwise, enqueue all navigation links
+    // Navigation page — enqueue children with inherited context
     $("a.auditRegNodeLink").each((_, el) => {
       const href = $(el).attr("href") ?? ""
       if (!href) return
       const abs = href.startsWith("http") ? href : `${BASE_URL}${href}`
-      if (!visited.has(abs)) queue.push(abs)
+      if (!visited.has(abs)) queue.push({ url: abs, context: ctx })
     })
   }
 
@@ -213,7 +271,7 @@ async function crawlSemester(
 
 // ── Step 3 — Parse a course table page ────────────────────────────────────────
 
-function parseCoursePage(html: string, pageUrl: string, semester: string): ParsedOffering[] {
+function parseCoursePage(html: string, pageUrl: string, semester: string, ctx: CrawlContext): ParsedOffering[] {
   const $         = cheerio.load(html)
   const offerings: ParsedOffering[] = []
   const skipped:  string[] = []
@@ -289,6 +347,8 @@ function parseCoursePage(html: string, pageUrl: string, semester: string): Parse
         moduleNumber:   currentModule.moduleNumber,
         moduleName:     currentModule.moduleName,
         moduleUrl:      currentModule.moduleUrl,
+        school:         ctx.school,
+        curriculumType: ctx.curriculumType,
         offeringNumber,
         offeringName,
         offeringUrl,
@@ -339,42 +399,64 @@ async function upsertCourse(
 
   let id: string
 
+  const courseBase = {
+    name:            offering.moduleName,
+    school:          offering.school,
+    curriculum_type: offering.curriculumType,
+    source_url:      offering.moduleUrl,
+    last_synced_at:  new Date().toISOString(),
+  }
+
   if (offering.moduleNumber) {
-    // Numbered: upsert on module_number
-    const { data, error } = await db
+    // Numbered: partial unique index (WHERE module_number IS NOT NULL) can't be used
+    // as an ON CONFLICT target by the JS client, so use select-then-insert/update.
+    const { data: existing } = await db
       .from("campusnet_courses")
-      .upsert(
-        {
-          module_number:  offering.moduleNumber,
-          name:           offering.moduleName,
-          source_url:     offering.moduleUrl,
-          last_synced_at: new Date().toISOString(),
-        },
-        { onConflict: "module_number" }
-      )
       .select("id")
-      .single()
+      .eq("module_number", offering.moduleNumber)
+      .maybeSingle()
 
-    if (error || !data) throw new Error(`Course upsert failed for "${offering.moduleNumber}": ${error?.message}`)
-    id = data.id
+    if (existing) {
+      await db.from("campusnet_courses").update({ ...courseBase }).eq("id", existing.id)
+      id = existing.id
+    } else {
+      const { data: inserted, error: insErr } = await db
+        .from("campusnet_courses")
+        .insert({ ...courseBase, module_number: offering.moduleNumber })
+        .select("id")
+        .single()
+
+      if (insErr || !inserted)
+        throw new Error(`Course upsert failed for "${offering.moduleNumber}": ${insErr?.message}`)
+      id = inserted.id
+    }
   } else {
-    // Unnumbered: upsert on name (uses partial index)
-    const { data, error } = await db
+    // Unnumbered: partial unique index on (name) WHERE module_number IS NULL
+    // can't be used as an ON CONFLICT target, so use select-then-insert/update.
+    const { data: existing } = await db
       .from("campusnet_courses")
-      .upsert(
-        {
-          module_number:  null,
-          name:           offering.moduleName,
-          source_url:     offering.moduleUrl,
-          last_synced_at: new Date().toISOString(),
-        },
-        { onConflict: "name" }
-      )
       .select("id")
-      .single()
+      .eq("name", offering.moduleName)
+      .is("module_number", null)
+      .maybeSingle()
 
-    if (error || !data) throw new Error(`Course upsert failed for "${offering.moduleName}": ${error?.message}`)
-    id = data.id
+    if (existing) {
+      await db
+        .from("campusnet_courses")
+        .update({ ...courseBase })
+        .eq("id", existing.id)
+      id = existing.id
+    } else {
+      const { data: inserted, error: insErr } = await db
+        .from("campusnet_courses")
+        .insert({ ...courseBase, module_number: null })
+        .select("id")
+        .single()
+
+      if (insErr || !inserted)
+        throw new Error(`Course upsert failed for "${offering.moduleName}": ${insErr?.message}`)
+      id = inserted.id
+    }
   }
 
   cache.set(cacheKey, id)
@@ -453,10 +535,21 @@ async function upsertOffering(
 // ── Main ───────────────────────────────────────────────────────────────────────
 
 async function main() {
+  const reset = process.argv.includes("--reset")
+
   console.log("\n📚  Constructor University – CampusNet Importer")
   console.log(`   Min semester : Spring ${MIN_YEAR}+\n`)
 
   const db = createClient(SUPABASE_URL!, SUPABASE_KEY!)
+
+  if (reset) {
+    console.log("🗑   --reset: clearing campusnet tables…")
+    // Order matters: junction → offerings → courses (instructors kept as-is)
+    await db.from("course_offering_instructors").delete().neq("course_offering_id", "00000000-0000-0000-0000-000000000000")
+    await db.from("course_offerings").delete().neq("id", "00000000-0000-0000-0000-000000000000")
+    await db.from("campusnet_courses").delete().neq("id", "00000000-0000-0000-0000-000000000000")
+    console.log("   ✓  Tables cleared\n")
+  }
 
   // In-memory caches to avoid redundant DB round-trips per run
   const instructorCache = new Map<string, string>() // name → id
@@ -478,18 +571,18 @@ async function main() {
     console.log(`\n📅  ${semester.label}`)
     console.log(`   Crawling…`)
 
-    // BFS to find all pages with course tables
-    const coursePages = await crawlSemester(semester.url, semester.label, visited)
+    // BFS to find all pages with course tables (context-aware)
+    const coursePages = await crawlSemester(semester.url, visited)
     console.log(`   Found ${coursePages.length} course-table page(s)`)
 
     let semesterOfferings = 0
 
-    for (const pageUrl of coursePages) {
+    for (const { url: pageUrl, context } of coursePages) {
       await sleep(RATE_MS)
       const html = await fetchWithRetry(pageUrl)
       if (!html) { totalSkipped++; continue }
 
-      const offerings = parseCoursePage(html, pageUrl, semester.label)
+      const offerings = parseCoursePage(html, pageUrl, semester.label, context)
 
       for (const offering of offerings) {
         try {

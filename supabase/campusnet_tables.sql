@@ -19,13 +19,15 @@ create policy "Instructors: authenticated read"
 -- ─── Courses (deduplicated academic modules) ──────────────────────────────────
 
 create table if not exists campusnet_courses (
-  id             uuid        primary key default gen_random_uuid(),
-  module_number  text,                    -- e.g. "CH-101"  (null if unnumbered)
-  name           text        not null,
-  source_url     text        not null,
-  last_synced_at timestamptz not null default now(),
-  created_at     timestamptz not null default now(),
-  updated_at     timestamptz not null default now()
+  id              uuid        primary key default gen_random_uuid(),
+  module_number   text,                    -- e.g. "CH-101"  (null if unnumbered)
+  name            text        not null,
+  school          text,                    -- "School of Science", "School of CS & Engineering", etc.
+  curriculum_type text,                    -- "Undergraduate", "Graduate", "Pre-Degree", etc.
+  source_url      text        not null,
+  last_synced_at  timestamptz not null default now(),
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
 );
 
 -- Numbered courses are unique by module_number.
