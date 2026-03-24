@@ -100,20 +100,18 @@ export default async function CourseDetailPage({
       .eq("course_id", id)
       .order("created_at", { ascending: false }),
 
-    matchedCourseId
-      ? Promise.all([
-          supabase
-            .from("course_resources")
-            .select("id, title, description, file_url, type")
-            .eq("course_id", matchedCourseId)
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("course_questions")
-            .select("id, title, body, is_resolved, created_at, course_answers(count)")
-            .eq("course_id", matchedCourseId)
-            .order("created_at", { ascending: false }),
-        ])
-      : Promise.resolve([{ data: null }, { data: null }]),
+    Promise.all([
+      supabase
+        .from("campusnet_course_resources")
+        .select("id, title, description, file_url, type, user_id")
+        .eq("course_id", id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("campusnet_course_questions")
+        .select("id, title, body, is_resolved, created_at")
+        .eq("course_id", id)
+        .order("created_at", { ascending: false }),
+    ]),
   ])
 
   const rawReviews = reviewsRes.data ?? []
@@ -149,31 +147,16 @@ export default async function CourseDetailPage({
       return b.net_votes - a.net_votes
     }) as Review[]
 
-  if (Array.isArray(resourcesQuestionsResult)) {
-    const [resourcesRes, questionsRes] = resourcesQuestionsResult as [
-      { data: Resource[] | null },
-      { data: { id: string; title: string; body: string | null; is_resolved: boolean | null; created_at: string; course_answers: { count: number }[] }[] | null },
-    ]
-    resources = (resourcesRes.data ?? []) as Resource[]
-    if (questionsRes.data) {
-      questions = questionsRes.data.map((q) => {
-        const answerData = q.course_answers
-        let answer_count = 0
-        if (Array.isArray(answerData) && answerData.length > 0) {
-          const first = answerData[0] as { count: number }
-          answer_count = first.count ?? 0
-        }
-        return {
-          id: q.id,
-          title: q.title,
-          body: q.body ?? null,
-          is_resolved: q.is_resolved ?? null,
-          created_at: q.created_at,
-          answer_count,
-        } satisfies Question
-      })
-    }
-  }
+  const [resourcesRes, questionsRes] = resourcesQuestionsResult
+  resources = (resourcesRes.data ?? []) as Resource[]
+  questions = (questionsRes.data ?? []).map((q) => ({
+    id:          q.id,
+    title:       q.title,
+    body:        q.body ?? null,
+    is_resolved: q.is_resolved ?? null,
+    created_at:  q.created_at,
+    answer_count: 0,  // campusnet questions don't have answers yet
+  } satisfies Question))
 
   // ── Compute summary stats ─────────────────────────────────────────────────
 

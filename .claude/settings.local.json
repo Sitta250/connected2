@@ -48,7 +48,10 @@
       "Bash(curl -L \"https://lh3.googleusercontent.com/aida/ADBb0uj69YvNUjuYOpIfZqWexW_TJHYTFOjI6n6DQMwU1DpiDBKxGb_z8SZIouXA0kadx90jUVpHX-qg9k6l2N2o6NesAipBlMrjrEIZVbNiYCxN4c-p39Ip_4W6XXjN4pgKurLSmuCYLKcP6c5-At257ORPiuZhIzj7HvS4OcyxY9vkCig57ExgLRn4XVc7CItQuR5diX18FSy382hHQemqH6RJ0AZ0HkqDwSyIhOF0DRZJ9b0XY9Ksxfgxqg\" -o /tmp/course-detail-design.png)",
       "Bash(curl -L \"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2FjODg4YTUzODMyODRiYjJiYjBiOTBiZDM3NzQzOTkyEgsSBxCRi67sihcYAZIBIwoKcHJvamVjdF9pZBIVQhM3MzY0MjQzMDQ3OTY2MTAwMDgz&filename=&opi=89354086\" -o /tmp/course-detail.html)",
       "Bash(curl -sL \"https://lh3.googleusercontent.com/aida/ADBb0uhljYfAYMVUo3ExFSn9XC-VcGoWXC7yFMLfZ7hP33Z_YayPilwf7ijfrjwZjp10Inr0eqoiZMUicSPQhDKv_HjYn5LKLrsnwtjD9GjxV3APR6ixKvLBSkfYLcCAQLizQy6affv0uyjD5O2Qwun_QGAOTgtdyLCZf2b_Fw4UQFAwMm1r9dsOZQYe7GghHnRUW7Mgw7iFf-VWKPlUMGhJxq6G9yYiHkDaJModp05BNJFBSJXENyua3cSA_hI\" -o /tmp/reviews-tab.png)",
-      "Bash(curl -sL \"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzg2ZjZiNmYwMmUzNDQzYWM4N2UxNWEyNDczYWRmOTY1EgsSBxCRi67sihcYAZIBIwoKcHJvamVjdF9pZBIVQhM3MzY0MjQzMDQ3OTY2MTAwMDgz&filename=&opi=89354086\" -o /tmp/reviews-tab.html)"
+      "Bash(curl -sL \"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzg2ZjZiNmYwMmUzNDQzYWM4N2UxNWEyNDczYWRmOTY1EgsSBxCRi67sihcYAZIBIwoKcHJvamVjdF9pZBIVQhM3MzY0MjQzMDQ3OTY2MTAwMDgz&filename=&opi=89354086\" -o /tmp/reviews-tab.html)",
+      "Bash(curl -sL \"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2E3YTNhMWZhNzJhZjQzNjA4YmZlNTIwMjk4OGUzMDA3EgsSBxCRi67sihcYAZIBIwoKcHJvamVjdF9pZBIVQhM3MzY0MjQzMDQ3OTY2MTAwMDgz&filename=&opi=89354086\" -o /tmp/qa-tab.html)",
+      "Bash(curl -sL \"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzQzOGIxYTNjMTIyNTRjZjNiNzRjMmFlYjkxYTU0Nzc2EgsSBxCRi67sihcYAZIBIwoKcHJvamVjdF9pZBIVQhM3MzY0MjQzMDQ3OTY2MTAwMDgz&filename=&opi=89354086\" -o /tmp/resources-tab.html)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }
