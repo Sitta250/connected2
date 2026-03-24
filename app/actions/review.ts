@@ -52,6 +52,36 @@ export async function submitReview(data: ReviewFormData): Promise<{ error?: stri
   return {}
 }
 
+export async function voteReview(reviewId: string, vote: 1 | -1): Promise<{ error?: string }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Not authenticated" }
+
+  // Fetch existing vote
+  const { data: existing } = await supabase
+    .from("campusnet_review_votes")
+    .select("vote")
+    .eq("review_id", reviewId)
+    .eq("user_id", user.id)
+    .maybeSingle()
+
+  if (existing?.vote === vote) {
+    // Same vote → toggle off
+    await supabase
+      .from("campusnet_review_votes")
+      .delete()
+      .eq("review_id", reviewId)
+      .eq("user_id", user.id)
+  } else {
+    await supabase
+      .from("campusnet_review_votes")
+      .upsert({ review_id: reviewId, user_id: user.id, vote }, { onConflict: "review_id,user_id" })
+  }
+
+  return {}
+}
+
 export async function deleteReview(courseId: string): Promise<{ error?: string }> {
   const supabase = await createClient()
 

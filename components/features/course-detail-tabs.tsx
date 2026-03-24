@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { FileText, Star, MessageCircle, BookOpen, ExternalLink, ThumbsUp, Lightbulb, Trash2 } from "lucide-react"
+import { FileText, Star, MessageCircle, BookOpen, ExternalLink, ThumbsUp, Lightbulb, Trash2, ChevronUp, ChevronDown } from "lucide-react"
 import { WriteReviewSheet } from "./write-review-sheet"
-import { deleteReview } from "@/app/actions/review"
+import { deleteReview, voteReview } from "@/app/actions/review"
 import { cn } from "@/lib/utils"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -40,6 +40,8 @@ export interface Review {
   would_recommend: boolean
   created_at:      string
   user_id:         string
+  net_votes:       number          // pre-computed server-side
+  my_vote:         0 | 1 | -1     // current user's vote
 }
 
 export interface Question {
@@ -226,6 +228,16 @@ function ReviewCard({
   const consList = review.cons?.split("\n").map((s) => s.trim()).filter(Boolean) ?? []
   const [confirming, setConfirming] = useState(false)
   const [deleting, startDelete] = useTransition()
+  const [myVote, setMyVote] = useState<0 | 1 | -1>(review.my_vote)
+  const [voting, startVote] = useTransition()
+
+  function handleVote(v: 1 | -1) {
+    const next: 0 | 1 | -1 = myVote === v ? 0 : v
+    setMyVote(next)
+    startVote(async () => {
+      await voteReview(review.id, v)
+    })
+  }
 
   function handleDelete() {
     startDelete(async () => {
@@ -337,6 +349,38 @@ function ReviewCard({
         </div>
       )}
 
+      {/* Vote buttons — only shown to other users (not own review) */}
+      {!isOwn && (
+        <div className="flex items-center gap-1 pt-1">
+          <button
+            onClick={() => handleVote(1)}
+            disabled={voting}
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-colors",
+              myVote === 1
+                ? "bg-[#23389c] text-white"
+                : "bg-[#f3f3f3] text-muted-foreground hover:bg-[#e8e8e8]"
+            )}
+          >
+            <ChevronUp className="h-3.5 w-3.5" />
+            Helpful
+          </button>
+          <button
+            onClick={() => handleVote(-1)}
+            disabled={voting}
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-colors",
+              myVote === -1
+                ? "bg-red-500 text-white"
+                : "bg-[#f3f3f3] text-muted-foreground hover:bg-[#e8e8e8]"
+            )}
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+            Not Helpful
+          </button>
+        </div>
+      )}
+
       {/* Delete confirmation */}
       {isOwn && confirming && (
         <div className="bg-red-50 border border-red-100 rounded-2xl p-4 space-y-3">
@@ -379,10 +423,8 @@ export function CourseDetailTabs({
   const [showReviewSheet, setShowReviewSheet] = useState(false)
 
   const ownReview = reviews.find((r) => r.user_id === currentUserId) ?? null
-  // Own review always first, then rest sorted by date (server already sorted desc)
-  const sortedReviews = ownReview
-    ? [ownReview, ...reviews.filter((r) => r.user_id !== currentUserId)]
-    : reviews
+  // Reviews already sorted server-side: own first, then by net votes desc
+  const sortedReviews = reviews
 
   const semesterMap = groupBySemester(offerings)
 

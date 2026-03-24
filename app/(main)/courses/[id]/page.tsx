@@ -116,7 +116,38 @@ export default async function CourseDetailPage({
       : Promise.resolve([{ data: null }, { data: null }]),
   ])
 
-  reviews = (reviewsRes.data ?? []) as Review[]
+  const rawReviews = reviewsRes.data ?? []
+
+  // Fetch votes for these reviews in parallel
+  const reviewIds = rawReviews.map((r) => r.id)
+  const { data: votesRaw } = reviewIds.length > 0
+    ? await supabase
+        .from("campusnet_review_votes")
+        .select("review_id, user_id, vote")
+        .in("review_id", reviewIds)
+    : { data: [] }
+
+  // Compute net votes and current user's vote per review
+  const voteMap = new Map<string, { net: number; myVote: 0 | 1 | -1 }>()
+  for (const v of (votesRaw ?? [])) {
+    if (!voteMap.has(v.review_id)) voteMap.set(v.review_id, { net: 0, myVote: 0 })
+    const entry = voteMap.get(v.review_id)!
+    entry.net += v.vote
+    if (v.user_id === user.id) entry.myVote = v.vote as 1 | -1
+  }
+
+  // Enrich reviews with vote data, then sort: own first, then by net votes desc
+  reviews = rawReviews
+    .map((r) => ({
+      ...r,
+      net_votes: voteMap.get(r.id)?.net ?? 0,
+      my_vote:   voteMap.get(r.id)?.myVote ?? 0,
+    }))
+    .sort((a, b) => {
+      if (a.user_id === user.id) return -1
+      if (b.user_id === user.id) return 1
+      return b.net_votes - a.net_votes
+    }) as Review[]
 
   if (Array.isArray(resourcesQuestionsResult)) {
     const [resourcesRes, questionsRes] = resourcesQuestionsResult as [
