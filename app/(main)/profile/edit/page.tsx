@@ -1,23 +1,31 @@
-import Link from "next/link"
-import { ChevronLeft, UserCircle } from "lucide-react"
-import { Placeholder } from "@/components/layout/page-shell"
+import { createClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
+import { EditProfileForm } from "@/components/features/edit-profile-form"
 
-export default function EditProfilePage() {
+export default async function EditProfilePage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect("/login")
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("full_name, avatar_url, bio, year_of_study, graduation_year, interests")
+    .eq("id", user.id)
+    .single()
+
   return (
-    <div className="px-4 pt-12 pb-4">
-      <Link
-        href="/profile"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground mb-6 hover:text-foreground"
-      >
-        <ChevronLeft className="h-4 w-4" /> Profile
-      </Link>
+    <div className="px-4 pt-12 pb-28">
 
-      <h1 className="font-display text-xl font-bold mb-6">Edit Profile</h1>
-
-      <Placeholder
-        icon={UserCircle}
-        label="Profile editor"
-        description="Update your name, major, year, bio and avatar photo. Coming soon."
+      <EditProfileForm
+        userId={user.id}
+        initialData={{
+          fullName:       data?.full_name       ?? "",
+          avatarUrl:      data?.avatar_url      ?? null,
+          bio:            data?.bio             ?? "",
+          yearOfStudy:    data?.year_of_study   ?? "",
+          graduationYear: data?.graduation_year ?? null,
+          interests:      (data?.interests as string[] | null) ?? [],
+        }}
       />
     </div>
   )
