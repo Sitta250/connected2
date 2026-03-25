@@ -108,7 +108,7 @@ export default async function CourseDetailPage({
         .order("created_at", { ascending: false }),
       supabase
         .from("campusnet_course_questions")
-        .select("id, title, body, is_resolved, created_at")
+        .select("id, title, body, is_resolved, created_at, user_id")
         .eq("course_id", id)
         .order("created_at", { ascending: false }),
     ]),
@@ -149,13 +149,43 @@ export default async function CourseDetailPage({
 
   const [resourcesRes, questionsRes] = resourcesQuestionsResult
   resources = (resourcesRes.data ?? []) as Resource[]
-  questions = (questionsRes.data ?? []).map((q) => ({
-    id:          q.id,
-    title:       q.title,
-    body:        q.body ?? null,
-    is_resolved: q.is_resolved ?? null,
-    created_at:  q.created_at,
-    answer_count: 0,  // campusnet questions don't have answers yet
+
+  const rawQuestions = questionsRes.data ?? []
+
+  // Fetch answer counts + votes for all questions in parallel
+  const questionIds = rawQuestions.map((q) => q.id)
+  const [answerCountsRes, questionVotesRes] = await Promise.all([
+    questionIds.length > 0
+      ? supabase.from("campusnet_question_answers").select("question_id").in("question_id", questionIds)
+      : Promise.resolve({ data: [] }),
+    questionIds.length > 0
+      ? supabase.from("campusnet_question_votes").select("question_id, user_id, vote").in("question_id", questionIds)
+      : Promise.resolve({ data: [] }),
+  ])
+
+  const answerCountMap = new Map<string, number>()
+  for (const row of (answerCountsRes.data ?? [])) {
+    answerCountMap.set(row.question_id, (answerCountMap.get(row.question_id) ?? 0) + 1)
+  }
+
+  const qVoteMap = new Map<string, { net: number; myVote: 0 | 1 | -1 }>()
+  for (const v of (questionVotesRes.data ?? [])) {
+    if (!qVoteMap.has(v.question_id)) qVoteMap.set(v.question_id, { net: 0, myVote: 0 })
+    const entry = qVoteMap.get(v.question_id)!
+    entry.net += v.vote
+    if (v.user_id === user.id) entry.myVote = v.vote as 1 | -1
+  }
+
+  questions = rawQuestions.map((q) => ({
+    id:           q.id,
+    title:        q.title,
+    body:         q.body ?? null,
+    is_resolved:  q.is_resolved ?? null,
+    created_at:   q.created_at,
+    answer_count: answerCountMap.get(q.id) ?? 0,
+    user_id:      q.user_id,
+    net_votes:    qVoteMap.get(q.id)?.net ?? 0,
+    my_vote:      qVoteMap.get(q.id)?.myVote ?? 0,
   } satisfies Question))
 
   // ── Compute summary stats ─────────────────────────────────────────────────

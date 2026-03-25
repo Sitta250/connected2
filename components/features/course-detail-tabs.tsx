@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { FileText, Star, MessageCircle, BookOpen, ExternalLink, ThumbsUp, Lightbulb, Trash2, ChevronUp, ChevronDown, Upload, CheckCircle2, MessageSquarePlus, Download, X } from "lucide-react"
+import { FileText, Star, MessageCircle, BookOpen, ExternalLink, ThumbsUp, Lightbulb, Trash2, ChevronUp, ChevronDown, ArrowBigUp, ArrowBigDown, Upload, CheckCircle2, MessageSquarePlus, Download, X } from "lucide-react"
 import { WriteReviewSheet } from "./write-review-sheet"
 import { deleteReview, voteReview } from "@/app/actions/review"
-import { submitQuestion } from "@/app/actions/question"
+import { submitQuestion, submitAnswer, deleteQuestion } from "@/app/actions/question"
 // submitResource server action unused — insert done client-side for reliable auth
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
@@ -56,6 +56,9 @@ export interface Question {
   is_resolved:  boolean | null
   created_at:   string
   answer_count: number
+  user_id:      string
+  net_votes:    number
+  my_vote:      0 | 1 | -1
 }
 
 interface Props {
@@ -450,6 +453,7 @@ export function CourseDetailTabs({
   const [showReviewSheet, setShowReviewSheet] = useState(false)
   const [showAskSheet, setShowAskSheet] = useState(false)
   const [showUploadSheet, setShowUploadSheet] = useState(false)
+  const [questionSort, setQuestionSort] = useState<"newest" | "top">("newest")
 
   const ownReview = reviews.find((r) => r.user_id === currentUserId) ?? null
   // Reviews already sorted server-side: own first, then by net votes desc
@@ -601,14 +605,32 @@ export function CourseDetailTabs({
       {/* ── Q&A ──────────────────────────────────────────────────────────────── */}
       {activeTab === "Q&A" && (
         <div className="space-y-4">
-          {/* Ask a question button — always at top */}
-          <button
-            onClick={() => setShowAskSheet(true)}
-            className="w-full flex items-center justify-center gap-2 bg-[#23389c] text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-[#23389c]/20 active:scale-[0.98] transition-transform"
-          >
-            <MessageSquarePlus className="h-4 w-4" />
-            Start a Question
-          </button>
+          {/* Ask + sort row */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowAskSheet(true)}
+              className="flex-1 flex items-center justify-center gap-2 bg-[#23389c] text-white font-bold py-3 rounded-2xl shadow-lg shadow-[#23389c]/20 active:scale-[0.98] transition-transform"
+            >
+              <MessageSquarePlus className="h-4 w-4" />
+              Ask a Question
+            </button>
+            <div className="flex bg-[#f3f3f3] rounded-xl p-0.5 shrink-0">
+              {(["newest", "top"] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setQuestionSort(s)}
+                  className={cn(
+                    "px-3 py-2 text-xs font-bold rounded-lg capitalize transition-colors",
+                    questionSort === s
+                      ? "bg-white text-[#23389c] shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {s === "newest" ? "New" : "Top"}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {questions.length === 0 ? (
             <div className="rounded-2xl border-2 border-dashed border-border/60 p-12 flex flex-col items-center text-center">
@@ -620,41 +642,15 @@ export function CourseDetailTabs({
             </div>
           ) : (
             <div className="space-y-3">
-              {questions.map((q) => (
-                <div
-                  key={q.id}
-                  className={cn(
-                    "bg-white rounded-2xl p-5 border shadow-sm transition-shadow hover:shadow-md",
-                    q.is_resolved ? "border-green-200" : "border-border/40"
-                  )}
-                >
-                  {/* Meta row */}
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                    {q.is_resolved && (
-                      <span className="flex items-center gap-1 text-green-700 bg-green-50 px-2 py-0.5 rounded-lg font-bold uppercase text-[10px]">
-                        <CheckCircle2 className="h-3 w-3" /> Resolved
-                      </span>
-                    )}
-                    <span>{timeAgo(q.created_at)}</span>
-                  </div>
-
-                  {/* Title */}
-                  <p className="text-base font-bold text-foreground leading-snug mb-1">{q.title}</p>
-
-                  {/* Body preview */}
-                  {q.body && (
-                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-3">{q.body}</p>
-                  )}
-
-                  {/* Footer */}
-                  <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground pt-2 border-t border-border/30">
-                    <span className="flex items-center gap-1">
-                      <MessageCircle className="h-3.5 w-3.5" />
-                      {q.answer_count} {q.answer_count === 1 ? "answer" : "answers"}
-                    </span>
-                  </div>
-                </div>
-              ))}
+              {[...questions]
+                .sort((a, b) =>
+                  questionSort === "top"
+                    ? b.net_votes - a.net_votes
+                    : new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                )
+                .map((q) => (
+                  <QuestionCard key={q.id} question={q} currentUserId={currentUserId} courseId={campusnetCourseId} />
+                ))}
             </div>
           )}
         </div>
@@ -764,6 +760,296 @@ function ResourceCard({
           >
             Cancel
           </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Question Card ─────────────────────────────────────────────────────────────
+
+interface Answer {
+  id:         string
+  user_id:    string
+  body:       string
+  created_at: string
+}
+
+function QuestionCard({
+  question,
+  currentUserId,
+  courseId,
+}: {
+  question:      Question
+  currentUserId: string
+  courseId:      string
+}) {
+  const isOwn = question.user_id === currentUserId
+  const [expanded,    setExpanded]    = useState(false)
+  const [answers,     setAnswers]     = useState<Answer[]>([])
+  const [loading,     setLoading]     = useState(false)
+  const [loaded,      setLoaded]      = useState(false)
+  const [replyText,   setReplyText]   = useState("")
+  const [submitting,  startSubmit]    = useTransition()
+  const [submitErr,   setSubmitErr]   = useState<string | null>(null)
+  const [confirming,  setConfirming]  = useState(false)
+  const [deleting,    startDelete]    = useTransition()
+  const [myVote,   setMyVote]  = useState<0 | 1 | -1>(question.my_vote)
+  const [netVotes, setNetVotes] = useState(question.net_votes)
+  const [voting,   setVoting]  = useState(false)
+
+  async function handleVote(v: 1 | -1) {
+    if (isOwn || voting) return
+    setVoting(true)
+    const isSame = myVote === v
+    const prevVote = myVote
+    const newVote: 0 | 1 | -1 = isSame ? 0 : v
+    setMyVote(newVote)
+    setNetVotes((n) => n - prevVote + newVote)
+
+    const supabase = createClient()
+    const { data: existing } = await supabase
+      .from("campusnet_question_votes")
+      .select("vote")
+      .eq("question_id", question.id)
+      .maybeSingle()
+
+    if (existing?.vote === v) {
+      await supabase.from("campusnet_question_votes").delete().eq("question_id", question.id)
+    } else {
+      await supabase.from("campusnet_question_votes").upsert({ question_id: question.id, vote: v }, { onConflict: "question_id,user_id" })
+    }
+    setVoting(false)
+  }
+
+  function handleDelete() {
+    startDelete(async () => {
+      await deleteQuestion(question.id, courseId)
+      setConfirming(false)
+    })
+  }
+
+  async function loadAnswers() {
+    if (loaded) return
+    setLoading(true)
+    const supabase = createClient()
+    const { data } = await supabase
+      .from("campusnet_question_answers")
+      .select("id, user_id, body, created_at")
+      .eq("question_id", question.id)
+      .order("created_at", { ascending: true })
+    setAnswers(data ?? [])
+    setLoaded(true)
+    setLoading(false)
+  }
+
+  function handleToggle() {
+    const next = !expanded
+    setExpanded(next)
+    if (next) loadAnswers()
+  }
+
+  function handleSubmitAnswer(e: React.FormEvent) {
+    e.preventDefault()
+    if (!replyText.trim()) return
+    setSubmitErr(null)
+    startSubmit(async () => {
+      const result = await submitAnswer(question.id, replyText)
+      if (result.error) {
+        setSubmitErr(result.error)
+        return
+      }
+      // optimistically add the new answer
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      setAnswers((prev) => [
+        ...prev,
+        {
+          id:         crypto.randomUUID(),
+          user_id:    user?.id ?? currentUserId,
+          body:       replyText.trim(),
+          created_at: new Date().toISOString(),
+        },
+      ])
+      setReplyText("")
+    })
+  }
+
+  async function handleDeleteAnswer(answerId: string) {
+    const supabase = createClient()
+    await supabase.from("campusnet_question_answers").delete().eq("id", answerId)
+    setAnswers((prev) => prev.filter((a) => a.id !== answerId))
+  }
+
+  return (
+    <div className={cn(
+      "bg-white rounded-2xl border shadow-sm overflow-hidden",
+      question.is_resolved ? "border-green-200" : "border-border/40"
+    )}>
+      {/* Question header — always visible */}
+      <div className="p-5">
+        {/* Meta row */}
+        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground mb-2">
+          <div className="flex items-center gap-2">
+            {question.is_resolved && (
+              <span className="flex items-center gap-1 text-green-700 bg-green-50 px-2 py-0.5 rounded-lg font-bold uppercase text-[10px]">
+                <CheckCircle2 className="h-3 w-3" /> Resolved
+              </span>
+            )}
+            <span>{timeAgo(question.created_at)}</span>
+          </div>
+          {isOwn && !confirming && (
+            <button
+              onClick={() => setConfirming(true)}
+              className="flex items-center gap-0.5 text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-lg hover:bg-red-100 transition-colors"
+            >
+              <Trash2 className="h-2.5 w-2.5" /> Delete
+            </button>
+          )}
+        </div>
+
+        {/* Delete confirmation */}
+        {isOwn && confirming && (
+          <div className="mb-3 bg-red-50 border border-red-100 rounded-xl p-3 flex items-center gap-2">
+            <p className="text-xs font-semibold text-red-700 flex-1">Delete your question?</p>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="text-xs font-bold text-white bg-red-500 px-3 py-1.5 rounded-lg disabled:opacity-60"
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </button>
+            <button
+              onClick={() => setConfirming(false)}
+              disabled={deleting}
+              className="text-xs font-bold text-foreground bg-white border border-border px-3 py-1.5 rounded-lg"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {/* Title */}
+        <p className="text-base font-bold text-foreground leading-snug mb-1">{question.title}</p>
+
+        {/* Body */}
+        {question.body && (
+          <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-3">{question.body}</p>
+        )}
+
+        {/* Footer: votes + answers toggle */}
+        <div className="flex items-center gap-3 pt-2 border-t border-border/30">
+          {/* Vote buttons */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => handleVote(1)}
+              disabled={voting || isOwn}
+              className={cn(
+                "flex items-center justify-center w-8 h-8 rounded-lg transition-colors disabled:cursor-default",
+                myVote === 1
+                  ? "text-[#23389c]"
+                  : "text-muted-foreground/40 hover:text-[#23389c]"
+              )}
+            >
+              <ArrowBigUp className={cn("h-6 w-6", myVote === 1 && "fill-[#23389c]")} />
+            </button>
+            <span className={cn(
+              "text-xs font-bold w-6 text-center tabular-nums",
+              netVotes > 0 ? "text-[#23389c]" : netVotes < 0 ? "text-red-500" : "text-muted-foreground"
+            )}>
+              {netVotes}
+            </span>
+            <button
+              onClick={() => handleVote(-1)}
+              disabled={voting || isOwn}
+              className={cn(
+                "flex items-center justify-center w-8 h-8 rounded-lg transition-colors disabled:cursor-default",
+                myVote === -1
+                  ? "text-red-500"
+                  : "text-muted-foreground/40 hover:text-red-400"
+              )}
+            >
+              <ArrowBigDown className={cn("h-6 w-6", myVote === -1 && "fill-red-500")} />
+            </button>
+          </div>
+
+          {/* Answers toggle */}
+          <button
+            onClick={handleToggle}
+            className="flex items-center gap-1.5 text-xs font-semibold text-[#23389c] hover:text-[#23389c]/80 transition-colors ml-auto"
+          >
+            <MessageCircle className="h-3.5 w-3.5" />
+            {expanded ? "Hide" : `${question.answer_count} ${question.answer_count === 1 ? "answer" : "answers"}`}
+          </button>
+        </div>
+      </div>
+
+      {/* Answers section — shown when expanded */}
+      {expanded && (
+        <div className="border-t border-border/30 bg-[#fafafa]">
+          {loading && (
+            <p className="text-xs text-muted-foreground text-center py-6">Loading…</p>
+          )}
+
+          {!loading && answers.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center py-6">No answers yet — be the first!</p>
+          )}
+
+          {!loading && answers.length > 0 && (
+            <div className="divide-y divide-border/30">
+              {answers.map((a) => {
+                const isOwnAnswer = a.user_id === currentUserId
+                return (
+                  <div key={a.id} className="flex gap-3 px-5 py-4">
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
+                      isOwnAnswer ? "bg-[#23389c] text-white" : avatarColor(a.user_id)
+                    )}>
+                      {isOwnAnswer ? "You" : userInitials(a.user_id)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-xs font-bold text-foreground">
+                          {isOwnAnswer ? "You" : "Student"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">{timeAgo(a.created_at)}</span>
+                      </div>
+                      <p className="text-sm text-foreground/80 leading-relaxed mt-0.5">{a.body}</p>
+                    </div>
+                    {isOwnAnswer && (
+                      <button
+                        onClick={() => handleDeleteAnswer(a.id)}
+                        className="text-muted-foreground/40 hover:text-red-400 transition-colors shrink-0 self-start mt-0.5"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Reply input */}
+          <form onSubmit={handleSubmitAnswer} className="px-5 pb-4 pt-3 flex gap-2 border-t border-border/30">
+            <input
+              type="text"
+              placeholder="Write an answer…"
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              className="flex-1 bg-white border border-border/60 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#23389c] min-w-0"
+            />
+            <button
+              type="submit"
+              disabled={submitting || !replyText.trim()}
+              className="bg-[#23389c] text-white text-xs font-bold px-4 py-2 rounded-xl disabled:opacity-50 shrink-0 transition-opacity"
+            >
+              {submitting ? "…" : "Post"}
+            </button>
+          </form>
+          {submitErr && (
+            <p className="text-xs text-red-500 px-5 pb-3">{submitErr}</p>
+          )}
         </div>
       )}
     </div>

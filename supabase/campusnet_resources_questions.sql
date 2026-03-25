@@ -52,3 +52,24 @@ create policy "CampusNet questions: own update"
 
 create policy "CampusNet questions: own delete"
   on campusnet_course_questions for delete using (user_id = auth.uid());
+
+-- ─── Question Answers ─────────────────────────────────────────────────────────
+
+create table if not exists campusnet_question_answers (
+  id          uuid        primary key default gen_random_uuid(),
+  question_id uuid        not null references campusnet_course_questions(id) on delete cascade,
+  user_id     uuid        not null references profiles(id)                   on delete cascade,
+  body        text        not null,
+  created_at  timestamptz not null default now()
+);
+
+alter table campusnet_question_answers enable row level security;
+
+create policy "CampusNet answers: authenticated read"
+  on campusnet_question_answers for select to authenticated using (true);
+
+create policy "CampusNet answers: own insert"
+  on campusnet_question_answers for insert with check (user_id = auth.uid());
+
+create policy "CampusNet answers: own delete"
+  on campusnet_question_answers for delete using (user_id = auth.uid());
